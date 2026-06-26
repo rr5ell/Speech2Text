@@ -1,0 +1,44 @@
+allprojects {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+subprojects { subproject ->
+    subproject.beforeEvaluate {
+        if (!subproject.hasProperty('flutter')) {
+            subproject.ext.flutter = [
+                compileSdkVersion: 35,
+                targetSdkVersion: 35,
+                ndkVersion: "26.1.10909125",
+                versionCode: 1,
+                versionName: "1.0",
+                minSdkVersion: 24
+            ]
+        }
+    }
+}
+subprojects { subproject ->
+    subproject.plugins.withId("com.android.library") {
+        subproject.android {
+            if (namespace == null) {
+                namespace = subproject.group
+            }
+        }
+    }
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
