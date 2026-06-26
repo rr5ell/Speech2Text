@@ -29,7 +29,8 @@
 
 - [Flutter SDK](https://docs.flutter.dev/get-started/install)（Dart ^3.5.0）
 - Android 开发：Android SDK 35、JDK 17、minSdk 24
-- Release 构建仅包含 **arm64-v8a** 架构
+- iOS 开发：Xcode 15+、iOS 13.0+（需在 macOS 上构建）
+- Release 构建仅包含 **arm64-v8a** 架构（Android）
 - 首次下载模型需要网络连接
 
 ## 快速开始
@@ -53,6 +54,22 @@ flutter build apk --release
 ```
 
 产物路径：`build/app/outputs/flutter-apk/app-release.apk`
+
+## 构建 iOS（macOS）
+
+在 Mac 上克隆项目后执行：
+
+```bash
+flutter pub get
+cd ios && pod install && cd ..
+flutter build ios --release
+```
+
+或使用 Xcode 打开 `ios/Runner.xcworkspace`，配置 Signing & Capabilities 后 Archive 打包。
+
+- Bundle ID：`com.vosk.stt.speechToTextSherpa`
+- 最低系统版本：iOS 13.0（`sherpa_onnx` 要求）
+- 首次下载模型需要网络；麦克风权限已在 `Info.plist` 中声明
 
 ## 使用说明
 
@@ -95,6 +112,7 @@ lib/
 | 平台 | 状态 |
 |------|------|
 | Android | 主要支持（minSdk 24，arm64-v8a） |
+| iOS | 已支持（iOS 13.0+，需在 Mac 上构建） |
 | Windows | 目录已包含，当前以 Android 为主 |
 
 ## 相关文档
