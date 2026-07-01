@@ -15,12 +15,24 @@
 - 问题描述：Gradle Wrapper 默认从 `services.gradle.org` 下载 `gradle-8.3-all.zip`，在当前网络环境下容易卡住；默认缓存路径也可能落到系统盘用户目录。
 - 影响范围：首次打开或构建 Flutter/Android 项目。
 - 严重程度：中。
+- 问题描述：Android Gradle Plugin `8.1.0` 在 Java 21 环境下触发已知 `JdkImageTransform` 问题，表现为 `ModuleTarget is malformed: platformString missing delimiter: android`。
+- 影响范围：Android Debug/Release 构建，尤其是依赖 `path_provider_android` 等插件编译阶段。
+- 严重程度：高。
+- 问题描述：旧版 `permission_handler_android 10.3.6` 引用 Flutter v1 `PluginRegistry.Registrar`，当前 Flutter SDK 中该接口不可用。
+- 影响范围：`:permission_handler_android:compileDebugJavaWithJavac`。
+- 严重程度：高。
+- 问题描述：Kotlin 增量编译在 C 盘 Pub Cache 与 E 盘项目之间计算相对路径失败，报 `this and base files have different roots`。
+- 影响范围：`:record_android:compileDebugKotlin` 等 Kotlin 插件编译任务。
+- 严重程度：中。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
 - 修复方法：将 widget 测试断言同步为当前首页标题。
 - 修复方法：按用户提供的纯文本词表修正新增韩语触发词。
 - 修复方法：当前项目切换到阿里云 Gradle 镜像的 `gradle-8.3-bin.zip`，并将用户级 `GRADLE_USER_HOME` 指向 `E:\Android\.gradle`。
+- 修复方法：升级 Android Gradle Plugin 到 `8.2.2`。
+- 修复方法：升级 `permission_handler` 到 `^12.0.3`。
+- 修复方法：在 `android/gradle.properties` 中设置 `kotlin.incremental=false`。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 
