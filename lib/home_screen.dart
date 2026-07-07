@@ -520,35 +520,49 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (mounted) setState(() => _isPreparing = true);
 
     try {
-      sherpa.initBindings();
+      // 显示当前选择的引擎类型
+      final engineName = _selectedEngineType == EngineType.sherpaOnnx
+          ? 'Sherpa-ONNX'
+          : 'iOS Native';
+      debugPrint('[Engine] Selected engine: $engineName, lang=$_selectedLangCode');
 
-      final needsVadRebuild = _vad == null ||
-          (_selectedLangCode == 'ko') != (_preparedLangCode == 'ko');
+      // 只有 Sherpa-ONNX 引擎需要初始化
+      if (_selectedEngineType == EngineType.sherpaOnnx) {
+        sherpa.initBindings();
 
-      if (needsVadRebuild) {
-        await _rebuildVad(isKorean: _selectedLangCode == 'ko');
+        final needsVadRebuild = _vad == null ||
+            (_selectedLangCode == 'ko') != (_preparedLangCode == 'ko');
+
+        if (needsVadRebuild) {
+          await _rebuildVad(isKorean: _selectedLangCode == 'ko');
+        }
+
+        _recognizer?.free();
+        debugPrint('[SherpaASR] Creating Sherpa recognizer lang=$_selectedLangCode');
+
+        _recognizer = sherpa.OfflineRecognizer(
+          sherpa.OfflineRecognizerConfig(
+            model: sherpa.OfflineModelConfig(
+              senseVoice: sherpa.OfflineSenseVoiceModelConfig(
+                model: await _modelManager.getSenseVoiceModelPath(),
+                language: _selectedLangCode,
+                useInverseTextNormalization: false,
+              ),
+              tokens: await _modelManager.getSenseVoiceTokensPath(),
+              numThreads: 2,
+              debug: true,
+            ),
+          ),
+        );
+      } else {
+        debugPrint('[iOS Native] Using iOS Speech Framework');
+        // iOS 原生引擎不需要预先初始化模型
+        _recognizer?.free();
+        _recognizer = null;
       }
 
-      _recognizer?.free();
-      debugPrint('[SherpaASR] Creating recognizer lang=$_selectedLangCode');
-
-      _recognizer = sherpa.OfflineRecognizer(
-        sherpa.OfflineRecognizerConfig(
-          model: sherpa.OfflineModelConfig(
-            senseVoice: sherpa.OfflineSenseVoiceModelConfig(
-              model: await _modelManager.getSenseVoiceModelPath(),
-              language: _selectedLangCode,
-              useInverseTextNormalization: false,
-            ),
-            tokens: await _modelManager.getSenseVoiceTokensPath(),
-            numThreads: 2,
-            debug: true,
-          ),
-        ),
-      );
-
       _preparedLangCode = _selectedLangCode;
-      debugPrint('[SherpaASR] Engine ready lang=$_selectedLangCode');
+      debugPrint('[Engine] Engine ready: $engineName, lang=$_selectedLangCode');
     } catch (e, st) {
       _freeEngine();
       debugPrint('[ASR] Engine init error: $e\n$st');
@@ -697,44 +711,86 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   String _formatKeywordRecognitionOutput(String text) {
     if (text.isEmpty) return text;
+
+    // 查找匹配的热词
+    String? matchedKeyword;
     if (_selectedLangCode == 'zh') {
       // 先检查扫描热词
       for (final entry in _chineseScanKeywords.entries) {
-        if (text.contains(entry.key)) return entry.value;
+        if (text.contains(entry.key)) {
+          matchedKeyword = entry.value;
+          break;
+        }
       }
       // 再检查测距热词
-      for (final entry in _chineseDistanceKeywords.entries) {
-        if (text.contains(entry.key)) return entry.value;
+      if (matchedKeyword == null) {
+        for (final entry in _chineseDistanceKeywords.entries) {
+          if (text.contains(entry.key)) {
+            matchedKeyword = entry.value;
+            break;
+          }
+        }
       }
     } else if (_selectedLangCode == 'ko') {
       // 先检查测距热词
       for (final entry in _koreanDistanceKeywords.entries) {
-        if (text.contains(entry.key)) return entry.value;
+        if (text.contains(entry.key)) {
+          matchedKeyword = entry.value;
+          break;
+        }
       }
       // 再检查Pin Catcher热词
-      for (final entry in _koreanPinCatcherKeywords.entries) {
-        if (text.contains(entry.key)) return entry.value;
+      if (matchedKeyword == null) {
+        for (final entry in _koreanPinCatcherKeywords.entries) {
+          if (text.contains(entry.key)) {
+            matchedKeyword = entry.value;
+            break;
+          }
+        }
       }
     } else if (_selectedLangCode == 'en') {
       final lower = text.toLowerCase();
       // 先检查测距热词
       for (final entry in _englishDistanceKeywords.entries) {
-        if (lower.contains(entry.key)) return entry.value;
+        if (lower.contains(entry.key)) {
+          matchedKeyword = entry.value;
+          break;
+        }
       }
       // 再检查Pin Catcher热词
-      for (final entry in _englishPinCatcherKeywords.entries) {
-        if (lower.contains(entry.key)) return entry.value;
+      if (matchedKeyword == null) {
+        for (final entry in _englishPinCatcherKeywords.entries) {
+          if (lower.contains(entry.key)) {
+            matchedKeyword = entry.value;
+            break;
+          }
+        }
       }
     } else if (_selectedLangCode == 'ja') {
       // 先检查测距热词
       for (final entry in _japaneseDistanceKeywords.entries) {
-        if (text.contains(entry.key)) return entry.value;
+        if (text.contains(entry.key)) {
+          matchedKeyword = entry.value;
+          break;
+        }
       }
       // 再检查Pin Catcher热词
-      for (final entry in _japanesePinCatcherKeywords.entries) {
-        if (text.contains(entry.key)) return entry.value;
+      if (matchedKeyword == null) {
+        for (final entry in _japanesePinCatcherKeywords.entries) {
+          if (text.contains(entry.key)) {
+            matchedKeyword = entry.value;
+            break;
+          }
+        }
       }
     }
+
+    // 如果匹配到热词，显示原始文字 + 热词指令
+    if (matchedKeyword != null) {
+      return '$text → $matchedKeyword';
+    }
+
+    // 未匹配，返回原始文本
     return text;
   }
 
