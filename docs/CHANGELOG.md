@@ -40,6 +40,14 @@
 
 # 修改日志
 
+## [2026-07-07] Codex Agent
+
+### Fixed
+- 修复 iOS Scene 生命周期下 `ios_speech_recognition` MethodChannel 未稳定注册，导致 Dart 调用 `initialize` 抛出 `MissingPluginException` 的问题。
+- 新增 `SceneDelegate.swift`，在 `FlutterViewController` 创建后注册 iOS 原生语音识别通道。
+- 将 iOS 语音识别通道封装为 `IOSSpeechRecognitionPlugin`，并增加音频 input tap 的重复安装防护。
+- 修正 widget test 的包名引用，并清理 `home_screen.dart` 中阻塞静态分析的无用 import/字段。
+
 ## [2026-07-01 09:41:47 +08:00] Codex Agent
 
 ### Changed

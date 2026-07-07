@@ -5,6 +5,46 @@ import Flutter
 import Speech
 import AVFoundation
 
+final class IOSSpeechRecognitionPlugin {
+    private static let channelName = "ios_speech_recognition"
+    private static var channel: FlutterMethodChannel?
+    private static var speechRecognition: IOSSpeechRecognition?
+
+    static func register(with messenger: FlutterBinaryMessenger) {
+        let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)
+        let speechRecognition = IOSSpeechRecognition()
+
+        self.channel = channel
+        self.speechRecognition = speechRecognition
+
+        channel.setMethodCallHandler { call, result in
+            switch call.method {
+            case "initialize":
+                let args = call.arguments as? [String: Any]
+                let language = args?["language"] as? String ?? "zh-CN"
+                speechRecognition.initialize(channel: channel, language: language) { success in
+                    result(success)
+                }
+
+            case "startListening":
+                let args = call.arguments as? [String: Any]
+                let language = args?["language"] as? String ?? "zh-CN"
+                speechRecognition.startListening(language: language)
+                result(nil)
+
+            case "stopListening":
+                speechRecognition.stopListening()
+                result(nil)
+
+            default:
+                result(FlutterMethodNotImplemented)
+            }
+        }
+
+        print("[iOS Speech] MethodChannel '\(channelName)' registered")
+    }
+}
+
 class IOSSpeechRecognition: NSObject {
     private var speechRecognizer: SFSpeechRecognizer?
     private var audioEngine: AVAudioEngine?
@@ -12,6 +52,7 @@ class IOSSpeechRecognition: NSObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private var currentLanguage: String = "zh-CN"
     private var channel: FlutterMethodChannel?
+    private var isInputTapInstalled = false
 
     func initialize(channel: FlutterMethodChannel, language: String, success: @escaping (Bool) -> Void) {
         self.channel = channel
@@ -26,24 +67,42 @@ class IOSSpeechRecognition: NSObject {
             case .authorized:
                 // 请求麦克风权限
                 AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                    success(granted)
+                    DispatchQueue.main.async {
+                        success(granted)
+                    }
                 }
             case .denied, .restricted, .notDetermined:
-                success(false)
+                DispatchQueue.main.async {
+                    success(false)
+                }
             @unknown default:
-                success(false)
+                DispatchQueue.main.async {
+                    success(false)
+                }
             }
         }
     }
 
     func startListening(language: String) {
+        stopListening()
+
         currentLanguage = language
         speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: language))
 
+        guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
+            channel?.invokeMethod("onError", arguments: "当前语言的 iOS 语音识别不可用: \(language)")
+            return
+        }
+
         // 配置音频会话
         let audioSession = AVAudioSession.sharedInstance()
-        try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-        try? audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        do {
+            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            channel?.invokeMethod("onError", arguments: "配置音频会话失败: \(error.localizedDescription)")
+            return
+        }
 
         // 创建音频引擎
         audioEngine = AVAudioEngine()
@@ -54,36 +113,52 @@ class IOSSpeechRecognition: NSObject {
         recognitionRequest.shouldReportPartialResults = true
 
         // 开始识别任务
-        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
+        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
             if let result = result {
                 let text = result.bestTranscription.formattedString
-                self.channel?.invokeMethod("onRecognitionResult", arguments: text)
+                DispatchQueue.main.async {
+                    self.channel?.invokeMethod("onRecognitionResult", arguments: text)
+                }
 
                 if result.isFinal {
-                    self.stopListening()
+                    DispatchQueue.main.async {
+                        self.stopListening()
+                    }
                 }
             }
 
             if let error = error {
-                self.channel?.invokeMethod("onError", arguments: error.localizedDescription)
+                DispatchQueue.main.async {
+                    self.channel?.invokeMethod("onError", arguments: error.localizedDescription)
+                }
             }
         }
 
         // 配置音频输入
-        let inputNode = audioEngine!.inputNode
+        guard let audioEngine = audioEngine else { return }
+        let inputNode = audioEngine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             recognitionRequest.append(buffer)
         }
+        isInputTapInstalled = true
 
         // 启动音频引擎
-        audioEngine?.prepare()
-        try? audioEngine?.start()
+        audioEngine.prepare()
+        do {
+            try audioEngine.start()
+        } catch {
+            channel?.invokeMethod("onError", arguments: "启动音频引擎失败: \(error.localizedDescription)")
+            stopListening()
+        }
     }
 
     func stopListening() {
+        if isInputTapInstalled {
+            audioEngine?.inputNode.removeTap(onBus: 0)
+            isInputTapInstalled = false
+        }
         audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
 

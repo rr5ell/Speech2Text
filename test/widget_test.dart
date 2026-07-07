@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:speech_to_text_sherpa/main.dart';
+import 'package:speech_to_text_ios_native/main.dart';
 
 void main() {
   testWidgets('App loads home screen', (WidgetTester tester) async {

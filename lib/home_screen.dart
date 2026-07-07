@@ -1,15 +1,12 @@
 // 主界面：iOS 原生语音识别、热词匹配、结果展示。
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'app_locale_scope.dart';
 import 'app_strings.dart';
-import 'history_manager.dart';
-import 'history_record.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -97,7 +94,6 @@ const _japanesePinCatcherKeywords = {
 };
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _historyManager = HistoryManager();
   static const _channel = MethodChannel('ios_speech_recognition');
 
   String _selectedLangCode = 'zh';
@@ -366,9 +362,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'iOS 原生语音识别',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
                       ),
