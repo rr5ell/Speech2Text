@@ -88,6 +88,15 @@ class AppStrings {
 
   String get clear => _t('清除', 'Clear', 'クリア', '지우기');
 
+  String get copied => _t('已复制', 'Copied', 'コピーしました', '복사됨');
+
+  String get tapMicHint => _t(
+        '点击麦克风按钮开始语音识别',
+        'Tap mic button to start speech recognition',
+        'マイクボタンをタップして開始',
+        '마이크 버튼을 눌러 시작',
+      );
+
   String get longPressSnack => _t(
         '长按按钮说话，松开结束',
         'Hold to speak, release to stop',
