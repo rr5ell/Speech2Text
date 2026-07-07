@@ -3,7 +3,6 @@
 import 'dart:typed_data';
 
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
-import 'package:path_provider/path_provider.dart';
 
 import 'speech_engine.dart';
 import 'model_manager.dart';
@@ -17,8 +16,7 @@ class SherpaEngine implements SpeechRecognitionEngine {
   sherpa.OfflineStream? _stream;
   bool _initialized = false;
   String _langCode = 'zh';
-  String? _modelPath;
-  String? _tokensPath;
+  final _modelManager = SherpaModelManager();
 
   @override
   bool get isInitialized => _initialized;
@@ -36,35 +34,23 @@ class SherpaEngine implements SpeechRecognitionEngine {
     if (_initialized) return;
 
     try {
-      // 获取模型路径
-      final modelManager = SherpaModelManager();
-      _modelPath = await modelManager.getSenseVoiceModelPath();
-      _tokensPath = await modelManager.getSenseVoiceTokensPath();
+      sherpa.initBindings();
 
-      // 创建识别器配置
-      final config = sherpa.OfflineRecognizerConfig(
-        featConfig: sherpa.FeatureConfig(
-          sampleRate: 16000,
-          featureDim: 80,
-        ),
-        modelConfig: sherpa.OfflineModelConfig(
-          transducer: sherpa.OfflineTransducerModelConfig(
-            encoder: '',
-            decoder: '',
-            joiner: '',
+      // 创建识别器
+      _recognizer = sherpa.OfflineRecognizer(
+        sherpa.OfflineRecognizerConfig(
+          model: sherpa.OfflineModelConfig(
+            senseVoice: sherpa.OfflineSenseVoiceModelConfig(
+              model: await _modelManager.getSenseVoiceModelPath(),
+              language: _langCode,
+              useInverseTextNormalization: false,
+            ),
+            tokens: await _modelManager.getSenseVoiceTokensPath(),
+            numThreads: 2,
+            debug: true,
           ),
-          paraformer: sherpa.OfflineParaformerModelConfig(
-            model: _modelPath!,
-          ),
-          tokens: _tokensPath!,
-          numThreads: 4,
-          provider: 'cpu',
-          modelType: 'sensevoice',
         ),
-        decodingMethod: 'greedy_search',
       );
-
-      _recognizer = sherpa.createOfflineRecognizer(config: config);
       _initialized = true;
     } catch (e) {
       print('SherpaEngine initialization failed: $e');
@@ -81,7 +67,7 @@ class SherpaEngine implements SpeechRecognitionEngine {
   @override
   Future<void> endSession() async {
     if (_stream != null) {
-      _stream!.destroy();
+      _stream!.free();
       _stream = null;
     }
   }
@@ -105,7 +91,7 @@ class SherpaEngine implements SpeechRecognitionEngine {
   void dispose() {
     endSession();
     if (_recognizer != null) {
-      _recognizer!.destroy();
+      _recognizer!.free();
       _recognizer = null;
     }
     _initialized = false;

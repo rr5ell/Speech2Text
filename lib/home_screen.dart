@@ -12,9 +12,11 @@ import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
 
 import 'app_locale_scope.dart';
 import 'app_strings.dart';
+import 'engine_manager.dart';
 import 'history_manager.dart';
 import 'history_record.dart';
 import 'model_manager.dart';
+import 'speech_engine.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -368,6 +370,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   String _selectedLangCode = 'zh';
   String _selectedLangName(AppStrings s) => s.recognitionLangName(_selectedLangCode);
+
+  // 引擎类型选择
+  EngineType _selectedEngineType = EngineType.sherpaOnnx;
 
   bool _modelsReady = false;
   bool _isDownloading = false;
@@ -922,6 +927,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Column(
           children: [
             _buildLanguageSelector(cs, s),
+            _buildEngineSelector(cs, s),
             _buildModelStatus(cs, s),
             if (_error != null) _buildErrorBanner(cs),
             Expanded(child: _buildResultsArea(cs, s)),
@@ -974,6 +980,72 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }).toList(),
       ),
     );
+  }
+
+  Widget _buildEngineSelector(ColorScheme cs, AppStrings s) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: cs.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.settings_suggest, size: 18, color: cs.primary),
+              const SizedBox(width: 8),
+              Text(
+                '识别引擎',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+              const Spacer(),
+              // Sherpa-ONNX 选项
+              _buildEngineOption(
+                cs, 'Sherpa', EngineType.sherpaOnnx, _selectedEngineType == EngineType.sherpaOnnx,
+              ),
+              const SizedBox(width: 8),
+              // iOS 原生选项
+              _buildEngineOption(
+                cs, 'iOS原生', EngineType.iosNative, _selectedEngineType == EngineType.iosNative,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEngineOption(ColorScheme cs, String label, EngineType type, bool selected) {
+    return GestureDetector(
+      onTap: () => _selectEngine(type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? cs.primaryContainer : cs.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _selectEngine(EngineType type) {
+    if (type == _selectedEngineType) return;
+    setState(() => _selectedEngineType = type);
+    // 切换引擎后重新准备
+    if (_modelsReady) {
+      _prepareEngine();
+    }
   }
 
   Widget _buildModelStatus(ColorScheme cs, AppStrings s) {
