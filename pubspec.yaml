@@ -1,7 +1,7 @@
 name: speech_to_text_sherpa
 description: "Offline Speech to Text using Sherpa-ONNX SenseVoice - supports Chinese, English, Korean, Japanese"
 publish_to: 'none'
-version: 2.0.0+1
+version: 2.0.1+1
 
 environment:
   sdk: ^3.5.0
