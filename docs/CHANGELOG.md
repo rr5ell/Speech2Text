@@ -43,6 +43,7 @@
 ## [2026-07-08] Codex Agent
 
 ### Fixed
+- 修复 iOS 调用 stop 后仍可能收到 Speech Framework 迟到 partial 回调，导致 UI 显示停止后继续变化的问题。
 - 从 `feature/korean-hotwords` 恢复完整热词表，避免 iOS/Android 原生识别分支误用简化热词。
 - 恢复历史记录入口，识别最终结果会写入本地历史，历史按钮可弹出列表并支持恢复、复制、删除、清空。
 - 修复点击麦克风开始新一轮识别时清空上次最终结果的问题。

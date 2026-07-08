@@ -53,6 +53,8 @@ class IOSSpeechRecognition: NSObject {
     private var currentLanguage: String = "zh-CN"
     private var channel: FlutterMethodChannel?
     private var isInputTapInstalled = false
+    private var activeSessionId = 0
+    private var isListening = false
 
     func initialize(channel: FlutterMethodChannel, language: String, success: @escaping (Bool) -> Void) {
         self.channel = channel
@@ -85,11 +87,15 @@ class IOSSpeechRecognition: NSObject {
 
     func startListening(language: String) {
         stopListening()
+        activeSessionId += 1
+        let sessionId = activeSessionId
+        isListening = true
 
         currentLanguage = language
         speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: language))
 
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
+            isListening = false
             channel?.invokeMethod("onError", arguments: "当前语言的 iOS 语音识别不可用: \(language)")
             return
         }
@@ -100,6 +106,7 @@ class IOSSpeechRecognition: NSObject {
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
+            isListening = false
             channel?.invokeMethod("onError", arguments: "配置音频会话失败: \(error.localizedDescription)")
             return
         }
@@ -114,9 +121,16 @@ class IOSSpeechRecognition: NSObject {
 
         // 开始识别任务
         recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
+            guard self.isListening && sessionId == self.activeSessionId else {
+                return
+            }
+
             if let result = result {
                 let text = result.bestTranscription.formattedString
                 DispatchQueue.main.async {
+                    guard self.isListening && sessionId == self.activeSessionId else {
+                        return
+                    }
                     let method = result.isFinal ? "onRecognitionResult" : "onRecognitionPartial"
                     self.channel?.invokeMethod(method, arguments: text)
                 }
@@ -130,6 +144,9 @@ class IOSSpeechRecognition: NSObject {
 
             if let error = error {
                 DispatchQueue.main.async {
+                    guard self.isListening && sessionId == self.activeSessionId else {
+                        return
+                    }
                     self.channel?.invokeMethod("onError", arguments: error.localizedDescription)
                     self.stopListening()
                 }
@@ -150,12 +167,15 @@ class IOSSpeechRecognition: NSObject {
         do {
             try audioEngine.start()
         } catch {
+            isListening = false
             channel?.invokeMethod("onError", arguments: "启动音频引擎失败: \(error.localizedDescription)")
             stopListening()
         }
     }
 
     func stopListening() {
+        isListening = false
+        activeSessionId += 1
         if isInputTapInstalled {
             audioEngine?.inputNode.removeTap(onBus: 0)
             isInputTapInstalled = false

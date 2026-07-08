@@ -389,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
       } else if (call.method == 'onRecognitionPartial') {
         final text = call.arguments as String;
         debugPrint('[Native Speech] Partial: "$text"');
-        if (mounted) {
+        if (mounted && _isRecording) {
           setState(() => _partialText = text);
         }
       } else if (call.method == 'onError') {
