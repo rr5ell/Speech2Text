@@ -184,6 +184,12 @@ class IOSSpeechRecognition: NSObject {
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
 
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("[iOS Speech] Failed to deactivate audio session: \(error.localizedDescription)")
+        }
+
         audioEngine = nil
         recognitionRequest = nil
         recognitionTask = nil

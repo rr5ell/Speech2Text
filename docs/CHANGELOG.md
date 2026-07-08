@@ -43,6 +43,8 @@
 ## [2026-07-08] Codex Agent
 
 ### Fixed
+- 修复 iOS 只依赖 `SFSpeechRecognizer` final 结果才关闭麦克风的问题，partial 文本稳定 1.2 秒后会自动保存并停止本轮监听。
+- 修复 iOS `stopListening()` 只停止 `AVAudioEngine` 但未释放 `AVAudioSession` 的问题，停止时会将音频会话置为 inactive。
 - 修复 iOS partial 热词命中后立即停止监听导致只能识别一个短词的问题；iOS partial 现在只作为实时预览，最终结果或手动停止时再保存。
 - 修复 iOS 已有历史结果时新的 partial 文本被结果区隐藏的问题，未命中热词的中间文本也会显示并在停止时保留。
 - 修复 partial 识别文本已经命中热词时仍只原样显示的问题，现在如“测”会实时预览为 `测 → ok_测距`。

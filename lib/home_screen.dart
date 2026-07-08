@@ -358,6 +358,7 @@ const _japanesePinCatcherKeywords = {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const _channel = MethodChannel('native_speech_recognition');
+  static const _iosPartialFinalizeDelay = Duration(milliseconds: 1200);
 
   final _historyManager = HistoryManager();
   String _selectedLangCode = 'zh';
@@ -365,6 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _partialText = '';
   bool _isRecording = false;
   String? _error;
+  Timer? _iosPartialFinalizeTimer;
 
   bool get _isIosNativeSpeech => defaultTargetPlatform == TargetPlatform.iOS;
 
@@ -372,6 +374,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _setupMethodChannel();
+  }
+
+  @override
+  void dispose() {
+    _cancelIosPartialFinalizeTimer();
+    super.dispose();
   }
 
   void _setupMethodChannel() {
@@ -390,9 +398,10 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted && _isRecording) {
           if (_isIosNativeSpeech) {
             setState(() => _partialText = formatted);
+            _scheduleIosPartialFinalize();
           } else if (formatted != text) {
             await _acceptRecognition(formatted);
-            unawaited(_stopNativeListeningAfterPartialHit());
+            unawaited(_stopNativeListening('after partial hit'));
           } else {
             setState(() => _partialText = text);
           }
@@ -401,6 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final error = call.arguments as String;
         debugPrint('[Native Speech] Error: $error');
         if (mounted) {
+          _cancelIosPartialFinalizeTimer();
           if (_isIosNativeSpeech && _partialText.trim().isNotEmpty) {
             await _acceptRecognition(_partialText);
           } else {
@@ -416,6 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _acceptRecognition(String text) async {
+    _cancelIosPartialFinalizeTimer();
     setState(() {
       if (_recognizedText.isNotEmpty) _recognizedText += '\n';
       _recognizedText += text;
@@ -426,12 +437,33 @@ class _HomeScreenState extends State<HomeScreen> {
     await _saveHistoryRecord(text);
   }
 
-  Future<void> _stopNativeListeningAfterPartialHit() async {
+  void _scheduleIosPartialFinalize() {
+    _cancelIosPartialFinalizeTimer();
+    _iosPartialFinalizeTimer = Timer(_iosPartialFinalizeDelay, () {
+      unawaited(_finalizeIosPartialRecognition());
+    });
+  }
+
+  void _cancelIosPartialFinalizeTimer() {
+    _iosPartialFinalizeTimer?.cancel();
+    _iosPartialFinalizeTimer = null;
+  }
+
+  Future<void> _finalizeIosPartialRecognition() async {
+    if (!mounted || !_isIosNativeSpeech || !_isRecording) return;
+    final text = _partialText.trim();
+    if (text.isEmpty) return;
+
+    await _acceptRecognition(text);
+    await _stopNativeListening('after iOS partial timeout');
+  }
+
+  Future<void> _stopNativeListening(String reason) async {
     try {
       await _channel.invokeMethod('stopListening');
-      debugPrint('[Native Speech] Stopped listening after partial hit');
+      debugPrint('[Native Speech] Stopped listening $reason');
     } catch (e) {
-      debugPrint('[Native Speech] Stop after partial hit error: $e');
+      debugPrint('[Native Speech] Stop $reason error: $e');
     }
   }
 
@@ -516,6 +548,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startRecording() async {
+    _cancelIosPartialFinalizeTimer();
     setState(() => _error = null);
 
     final permStatus = await Permission.microphone.request();
@@ -550,6 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _stopRecording() async {
     try {
+      _cancelIosPartialFinalizeTimer();
       await _channel.invokeMethod('stopListening');
       if (!mounted) return;
       if (_isIosNativeSpeech && _partialText.trim().isNotEmpty) {

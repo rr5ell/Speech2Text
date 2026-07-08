@@ -50,6 +50,8 @@
 - 最终识别结果应写入 `HistoryManager`，历史入口不能只保留 UI 按钮。
 - partial 文本也要执行热词格式化，但 iOS 只能作为实时预览；不要因为 iOS partial 命中 `ok_` 命令就立即停止监听，避免短词抢先截断完整说话内容。
 - Android 和 iOS 的 partial 处理需要分流，Android 不应被 iOS 的连续识别补丁改变原有可用节奏。
+- iOS partial 必须有稳定超时兜底，当前为 1.2 秒；超过该时间没有新 partial 时，Flutter 接受当前 partial 并调用 `stopListening`。
+- iOS `stopListening()` 必须同时停止 `AVAudioEngine`、结束 recognition request、取消 task，并将 `AVAudioSession` 置为 inactive。
 - 结果区需要同时展示已有最终结果和当前 iOS partial，避免历史结果遮挡新一轮未命中的识别文本。
 - 热词表以 `feature/korean-hotwords` 中的完整词表为准，合并平台原生识别改动时不得回退成简化词表。
 - 中文热词匹配必须先判断测距类 `_chineseDistanceKeywords`，再判断扫描类 `_chineseScanKeywords`，避免同时出现“测距/扫描”时被扫描抢先命中。

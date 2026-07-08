@@ -69,6 +69,12 @@
 - 问题描述：结果区优先显示 `_recognizedText`，当已有历史结果时，iOS 新一轮 `_partialText` 即使有内容也被隐藏，造成未命中热词的 partial 看起来没有显示。
 - 影响范围：首页 iOS 识别结果展示。
 - 严重程度：中。
+- 问题描述：iOS 当前只在 `SFSpeechRecognizer` 返回 `result.isFinal == true` 时调用 `stopListening()`；实际短命令场景中经常只持续返回 partial，业务上已经识别成功但原生层不会自动停麦克风。
+- 影响范围：iOS 短命令识别成功或无 final 结果时的麦克风关闭。
+- 严重程度：高。
+- 问题描述：iOS `stopListening()` 停止了 `AVAudioEngine`，但没有调用 `AVAudioSession.setActive(false)`，系统音频会话可能保持激活状态。
+- 影响范围：iOS 系统麦克风占用释放。
+- 严重程度：中。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
@@ -100,6 +106,8 @@
 - 修复方法：partial 文本同样执行 `_formatKeyword`，命中热词时先作为 `_partialText` 实时预览，不立即结束本轮监听。
 - 修复方法：按平台分流 partial 命中逻辑：iOS 只更新 `_partialText` 作为实时预览，不再提前停止监听；Android 保持原有 partial 命中接受并停止的处理节奏。
 - 修复方法：结果区同时展示历史 `_recognizedText` 和当前 `_partialText`，避免 iOS 新一轮未命中文本被旧结果遮挡。
+- 修复方法：iOS partial 每次更新时重置 1.2 秒防抖定时器；文本稳定后自动把当前 partial 保存为结果，并调用原生 `stopListening()`。
+- 修复方法：iOS 原生 `stopListening()` 在停止 audio engine、结束 request、取消 task 后调用 `AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)`。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 
@@ -108,5 +116,6 @@
 - 后续新增中文热词时，测距类命令需要保持在扫描类命令之前，避免混合识别文本被扫描词抢先命中。
 - 热词命令如果允许由 partial 提前命中，必须同时处理迟到 final/partial 回调，避免重复写入结果。
 - iOS partial 阶段不得直接停止原生监听；Android 如需调整“命中即停”，必须先确认不会破坏现有可用流程。
+- iOS 不得只依赖 `result.isFinal` 作为关闭麦克风条件；短命令场景必须有 partial 稳定超时或等价兜底机制。
 - UI 标题或文案变更时，同步更新对应 widget 测试断言。
 - 新开 Flutter 项目前确认 IDE 已重启并继承用户级 `GRADLE_USER_HOME`。
