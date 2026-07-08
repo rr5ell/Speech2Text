@@ -97,6 +97,7 @@ class MainActivity : FlutterActivity() {
             override fun onError(error: Int) {
                 isListening = false
                 methodChannel?.invokeMethod("onError", androidSpeechErrorMessage(error))
+                stopNativeListening()
             }
 
             override fun onResults(results: Bundle?) {
@@ -104,7 +105,10 @@ class MainActivity : FlutterActivity() {
                 val text = extractBestResult(results)
                 if (text.isNotBlank()) {
                     methodChannel?.invokeMethod("onRecognitionResult", text)
+                } else {
+                    methodChannel?.invokeMethod("onError", "Android 系统语音识别失败: 未识别到有效语音")
                 }
+                stopNativeListening()
             }
 
             override fun onPartialResults(partialResults: Bundle?) {

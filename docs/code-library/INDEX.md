@@ -35,4 +35,4 @@ iOS 编译和真机运行需要在 macOS/Xcode 环境执行。
 
 ## 最后更新
 
-2026-07-07，Codex Agent。
+2026-07-08，Codex Agent。

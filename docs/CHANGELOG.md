@@ -42,6 +42,14 @@
 
 ## [2026-07-08] Codex Agent
 
+### Fixed
+- 修复原生语音识别命中、错误或无有效结果后，Flutter UI 仍显示录音中的问题。
+- 固定结果操作区高度，避免识别命中后“复制/清除”按钮出现导致结果文本框尺寸变化。
+- 修复 partial 识别结果存在时结果区域显示空白的问题。
+- Android/iOS 原生识别在最终结果或错误后主动清理当前识别会话，避免后续无法重新识别。
+
+## [2026-07-08] Codex Agent
+
 ### Added
 - 新增 Android 系统原生 `SpeechRecognizer` 语音识别实现，通过 `native_speech_recognition` MethodChannel 与 Flutter 通信。
 - Android 原生识别支持 `initialize`、`startListening`、`stopListening`，并通过 `onRecognitionPartial` / `onRecognitionResult` 回传中间和最终识别文本。

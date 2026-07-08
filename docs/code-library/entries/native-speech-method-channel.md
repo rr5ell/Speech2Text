@@ -43,6 +43,8 @@
 - iOS 在 `SceneDelegate.scene(_:willConnectTo:options:)` 中注册 `IOSSpeechRecognitionPlugin`。
 - Android 在 `MainActivity.configureFlutterEngine()` 中注册 MethodChannel。
 - 原生侧通过 `onRecognitionPartial` 返回中间结果，通过 `onRecognitionResult` 返回最终结果。
+- Flutter 收到最终结果或错误后必须同步结束录音 UI 状态。
+- Android/iOS 原生侧在最终结果或错误后清理当前识别会话，下一次识别重新创建会话。
 
 ## 注意事项
 
@@ -50,6 +52,7 @@
 - Android `AndroidManifest.xml` 必须包含 `RECORD_AUDIO`。
 - Android 11+ 需要在 `<queries>` 中声明 `android.speech.RecognitionService`。
 - Android 系统 `SpeechRecognizer` 是否可用取决于设备系统语音服务，部分设备可能不可用或依赖联网服务。
+- 命令识别场景默认一次识别结束即停止录音状态；如需连续听写，应显式实现分轮重启和错误节流。
 
 ## 测试与验证
 

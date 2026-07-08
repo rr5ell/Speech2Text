@@ -315,6 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (_recognizedText.isNotEmpty) _recognizedText += '\n';
             _recognizedText += formatted;
             _partialText = '';
+            _isRecording = false;
           });
         }
       } else if (call.method == 'onRecognitionPartial') {
@@ -327,7 +328,11 @@ class _HomeScreenState extends State<HomeScreen> {
         final error = call.arguments as String;
         debugPrint('[Native Speech] Error: $error');
         if (mounted) {
-          setState(() => _error = error);
+          setState(() {
+            _error = error;
+            _partialText = '';
+            _isRecording = false;
+          });
         }
       }
     });
@@ -616,6 +621,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildResultsArea(ColorScheme cs, AppStrings s) {
+    final displayText = _recognizedText.isNotEmpty
+        ? _recognizedText
+        : _partialText.isNotEmpty
+            ? _partialText
+            : s.tapMicHint;
+    final hasRecognizedText = _recognizedText.isNotEmpty;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -625,12 +637,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: SingleChildScrollView(
         child: Text(
-          _recognizedText.isEmpty && _partialText.isEmpty
-              ? s.tapMicHint
-              : _recognizedText,
+          displayText,
           style: TextStyle(
             fontSize: 16,
-            color: _recognizedText.isEmpty ? cs.onSurfaceVariant : cs.onSurface,
+            color: hasRecognizedText ? cs.onSurface : cs.onSurfaceVariant,
           ),
         ),
       ),
@@ -641,23 +651,31 @@ class _HomeScreenState extends State<HomeScreen> {
     final hasText = _recognizedText.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (hasText)
-            TextButton.icon(
-              onPressed: _copyText,
-              icon: const Icon(Icons.copy, size: 18),
-              label: Text(s.copy),
+      child: SizedBox(
+        height: 48,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 120),
+          opacity: hasText ? 1 : 0,
+          child: IgnorePointer(
+            ignoring: !hasText,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton.icon(
+                  onPressed: _copyText,
+                  icon: const Icon(Icons.copy, size: 18),
+                  label: Text(s.copy),
+                ),
+                const SizedBox(width: 16),
+                TextButton.icon(
+                  onPressed: _clearText,
+                  icon: const Icon(Icons.clear, size: 18),
+                  label: Text(s.clear),
+                ),
+              ],
             ),
-          if (hasText) const SizedBox(width: 16),
-          if (hasText)
-            TextButton.icon(
-              onPressed: _clearText,
-              icon: const Icon(Icons.clear, size: 18),
-              label: Text(s.clear),
-            ),
-        ],
+          ),
+        ),
       ),
     );
   }

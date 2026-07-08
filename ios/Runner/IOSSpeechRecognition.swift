@@ -131,6 +131,7 @@ class IOSSpeechRecognition: NSObject {
             if let error = error {
                 DispatchQueue.main.async {
                     self.channel?.invokeMethod("onError", arguments: error.localizedDescription)
+                    self.stopListening()
                 }
             }
         }

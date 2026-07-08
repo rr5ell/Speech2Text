@@ -36,6 +36,15 @@
 - 问题描述：Android 11+ 如果未在 `<queries>` 中声明 `android.speech.RecognitionService`，查询系统语音识别服务可能受包可见性限制影响。
 - 影响范围：Android 11+ 系统语音识别可用性判断。
 - 严重程度：中。
+- 问题描述：原生语音识别返回最终结果、错误或无有效结果后，Flutter UI 没有同步关闭录音状态，导致按钮和状态卡仍显示录音中。
+- 影响范围：iOS/Android 原生语音识别交互状态。
+- 严重程度：中。
+- 问题描述：结果区下方“复制/清除”按钮只在命中后出现，导致按钮区高度变化并挤压结果文本框。
+- 影响范围：首页识别结果显示稳定性。
+- 严重程度：低。
+- 问题描述：partial 识别结果到达时，结果区域判断进入非空状态，但实际仍渲染 `_recognizedText`，可能显示空白。
+- 影响范围：识别中间结果显示。
+- 严重程度：低。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
@@ -52,6 +61,11 @@
 - 修复方法：在 `MainActivity.configureFlutterEngine()` 中注册 `native_speech_recognition` MethodChannel，并用 Android 系统 `SpeechRecognizer` 实现 `initialize`、`startListening`、`stopListening`。
 - 修复方法：Android 原生侧开始识别前销毁旧 `SpeechRecognizer`，避免重复监听和资源泄漏。
 - 修复方法：在 `AndroidManifest.xml` 的 `<queries>` 中加入 `android.speech.RecognitionService`。
+- 修复方法：Flutter 收到 `onRecognitionResult` 或 `onError` 后同步设置 `_isRecording=false` 并清空 partial 文本。
+- 修复方法：Android 原生侧在 `onResults`、`onError` 后调用 `stopNativeListening()` 清理当前 `SpeechRecognizer`。
+- 修复方法：iOS 原生侧在识别错误后调用 `stopListening()` 清理当前识别会话。
+- 修复方法：结果操作区使用固定高度和透明度切换，避免命中后布局挤压。
+- 修复方法：结果区域优先显示最终文本，其次显示 partial 文本，最后显示提示文案。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 
