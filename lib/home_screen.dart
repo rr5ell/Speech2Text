@@ -68,6 +68,7 @@ const _chineseDistanceKeywords = {
   '距': 'ok_测距',
   '撤': 'ok_测距',
   '据': 'ok_测距',
+  '车': 'ok_测距',
   '车具': 'ok_测距',
   '特去': 'ok_测距',
   '这具': 'ok_测距',
@@ -162,6 +163,7 @@ const _koreanDistanceKeywords = {
   '좀': 'ok_거리측정',
   '집': 'ok_거리측정',
   '머 집': 'ok_거리측정',
+  '캡챠': 'ok_거리측정',
 };
 
 // 韩语Pin Catcher热词（핀캐쳐功能）
@@ -219,7 +221,6 @@ const _koreanPinCatcherKeywords = {
   '깨처': 'ok_핀캐쳐',
   '캡쳐': 'ok_핀캐쳐',
   '캡처': 'ok_핀캐쳐',
-  '캡챠': 'ok_핀캐쳐',
   '개쳐': 'ok_핀캐쳐',
   '캐저': 'ok_핀캐쳐',
   '캐초': 'ok_핀캐쳐',
