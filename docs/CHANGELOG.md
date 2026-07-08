@@ -43,6 +43,7 @@
 ## [2026-07-08] Codex Agent
 
 ### Fixed
+- 调整中文、韩语、日语热词变体：补充中文扫描短词，修正韩语 `개` 归类到 pin catcher，补充韩语/日语常见误识别词，并移除一条英文误触发词。
 - 修复 iOS 只依赖 `SFSpeechRecognizer` final 结果才关闭麦克风的问题，partial 文本稳定 1.2 秒后会自动保存并停止本轮监听。
 - 修复 iOS `stopListening()` 只停止 `AVAudioEngine` 但未释放 `AVAudioSession` 的问题，停止时会将音频会话置为 inactive。
 - 修复 iOS partial 热词命中后立即停止监听导致只能识别一个短词的问题；iOS partial 现在只作为实时预览，最终结果或手动停止时再保存。

@@ -27,6 +27,10 @@ const _chineseScanKeywords = {
   '旗杆': 'ok_扫描旗杆',
   '上描': 'ok_扫描旗杆',
   '杆': 'ok_扫描旗杆',
+  '干': 'ok_扫描旗杆',
+  '期': 'ok_扫描旗杆',
+  '上': 'ok_扫描旗杆',
+  '苗': 'ok_扫描旗杆',
   '个': 'ok_扫描旗杆',
   '扫旗杆': 'ok_扫描旗杆',
   '旗': 'ok_扫描旗杆',
@@ -37,6 +41,9 @@ const _chineseScanKeywords = {
   '怎么': 'ok_扫描旗杆',
   '怎': 'ok_扫描旗杆',
   '乞': 'ok_扫描旗杆',
+  '什': 'ok_扫描旗杆',
+  '少': 'ok_扫描旗杆',
+  '小': 'ok_扫描旗杆',
   '什了气缸': 'ok_扫描旗杆',
   '什么提缸': 'ok_扫描旗杆',
   '怎么提高': 'ok_扫描旗杆',
@@ -122,6 +129,7 @@ const _koreanDistanceKeywords = {
   '머리집자': 'ok_거리측정',
   '머리집다': 'ok_거리측정',
   '머리집 다': 'ok_거리측정',
+  '머리': 'ok_거리측정',
   '벌리 찍자': 'ok_거리측정',
   '자': 'ok_거리측정',
   '저리 책': 'ok_거리측정',
@@ -154,7 +162,6 @@ const _koreanDistanceKeywords = {
   '좀': 'ok_거리측정',
   '집': 'ok_거리측정',
   '머 집': 'ok_거리측정',
-  '개': 'ok_거리측정',
 };
 
 // 韩语Pin Catcher热词（핀캐쳐功能）
@@ -166,7 +173,7 @@ const _koreanPinCatcherKeywords = {
   '케청': 'ok_핀캐쳐',
   '링 캐청': 'ok_핀캐쳐',
   '개척': 'ok_핀캐쳐',
-  '이렇 이렇게': 'ok_핀캐쳐',
+  '피카츄': 'ok_핀캐쳐',
   '그 괜찮쳐': 'ok_핀캐쳐',
   '응 개척': 'ok_핀캐쳐',
   '인 캐죠': 'ok_핀캐쳐',
@@ -196,6 +203,7 @@ const _koreanPinCatcherKeywords = {
   '케': 'ok_핀캐쳐',
   '쳐': 'ok_핀캐쳐',
   '그': 'ok_핀캐쳐',
+  '개': 'ok_핀캐쳐',
   '핀 캐처': 'ok_핀캐쳐',
   '핀 개처': 'ok_핀캐쳐',
   '핀': 'ok_핀캐쳐',
@@ -308,7 +316,6 @@ const _englishPinCatcherKeywords = {
   'ink': 'ok_pin catcher',
   'in': 'ok_pin catcher',
   'control': 'ok_pin catcher',
-  'inay so': 'ok_pin catcher',
 };
 
 // 日语测距热词（測定功能）
@@ -336,6 +343,7 @@ const _japanesePinCatcherKeywords = {
   'ピンキャッチャー': 'ok_ピンキャッチャー',
   'ブンキャッチャー': 'ok_ピンキャッチャー',
   'ピンケッチ': 'ok_ピンキャッチャー',
+  '品': 'ok_ピンキャッチャー',
   '貧結': 'ok_ピンキャッチャー',
   '貧血': 'ok_ピンキャッチャー',
   'ピ結': 'ok_ピンキャッチャー',
@@ -539,11 +547,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _getNativeLanguageCode(String langCode) {
     switch (langCode) {
-      case 'zh': return 'zh-CN';
-      case 'en': return 'en-US';
-      case 'ja': return 'ja-JP';
-      case 'ko': return 'ko-KR';
-      default: return 'zh-CN';
+      case 'zh':
+        return 'zh-CN';
+      case 'en':
+        return 'en-US';
+      case 'ja':
+        return 'ja-JP';
+      case 'ko':
+        return 'ko-KR';
+      default:
+        return 'zh-CN';
     }
   }
 
@@ -574,7 +587,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _partialText = '';
       });
 
-      debugPrint('[Native Speech] Started listening with language: $nativeLang');
+      debugPrint(
+          '[Native Speech] Started listening with language: $nativeLang');
     } catch (e) {
       debugPrint('[Native Speech] Start error: $e');
       setState(() => _error = '启动语音识别失败: $e');
@@ -611,7 +625,8 @@ class _HomeScreenState extends State<HomeScreen> {
         HistoryRecord(
           id: DateTime.now().microsecondsSinceEpoch.toString(),
           createdAt: DateTime.now(),
-          languageName: AppLocaleScope.of(context).recognitionLangName(_selectedLangCode),
+          languageName:
+              AppLocaleScope.of(context).recognitionLangName(_selectedLangCode),
           languageFlag: _selectedLangCode,
           text: trimmed,
         ),
@@ -675,7 +690,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                               itemCount: records.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
                               itemBuilder: (context, index) {
                                 final record = records[index];
                                 return ListTile(
@@ -689,7 +705,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     '${record.languageName} · ${_formatHistoryTime(record.createdAt)}',
                                   ),
                                   onTap: () {
-                                    setState(() => _recognizedText = record.text);
+                                    setState(
+                                        () => _recognizedText = record.text);
                                     Navigator.of(context).pop();
                                   },
                                   trailing: Wrap(
@@ -706,9 +723,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       IconButton(
                                         tooltip: s.clear,
-                                        icon: const Icon(Icons.delete_outline, size: 18),
+                                        icon: const Icon(Icons.delete_outline,
+                                            size: 18),
                                         onPressed: () async {
-                                          await _historyManager.delete(record.id);
+                                          await _historyManager
+                                              .delete(record.id);
                                           await refresh();
                                         },
                                       ),
@@ -790,7 +809,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3),
               child: Material(
-                color: selected ? cs.primaryContainer : cs.surfaceContainerHighest,
+                color:
+                    selected ? cs.primaryContainer : cs.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(10),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
@@ -802,8 +822,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                        color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                        fontWeight:
+                            selected ? FontWeight.bold : FontWeight.normal,
+                        color: selected
+                            ? cs.onPrimaryContainer
+                            : cs.onSurfaceVariant,
                       ),
                     ),
                   ),

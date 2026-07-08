@@ -55,6 +55,7 @@
 - 结果区需要同时展示已有最终结果和当前 iOS partial，避免历史结果遮挡新一轮未命中的识别文本。
 - 热词表以 `feature/korean-hotwords` 中的完整词表为准，合并平台原生识别改动时不得回退成简化词表。
 - 中文热词匹配必须先判断测距类 `_chineseDistanceKeywords`，再判断扫描类 `_chineseScanKeywords`，避免同时出现“测距/扫描”时被扫描抢先命中。
+- 单字/短词热词必须谨慎归类；例如韩语 `개` 应归入 pin catcher，避免误触发距离测量。
 
 ## 注意事项
 
