@@ -51,6 +51,9 @@
 - 问题描述：`home_screen.dart` 中历史按钮入口 `_showHistory()` 仍是 TODO，且最终识别结果没有写入 `HistoryManager`，导致历史按钮点击无效。
 - 影响范围：首页历史记录功能。
 - 严重程度：中。
+- 问题描述：`feature/ios-native-only` 分支中的热词常量被简化，遗漏了 `feature/korean-hotwords` 中已经补充的大量中文、韩语、英语、日语识别变体。
+- 影响范围：原生识别文本后的热词命中率。
+- 严重程度：高。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
@@ -75,6 +78,7 @@
 - 修复方法：开始录音时只清空 `_partialText` 和错误状态，不再清空 `_recognizedText`。
 - 修复方法：结果区域使用固定 `Expanded` 占位和内部滚动，避免最终结果、partial 和提示文案切换时改变外部尺寸。
 - 修复方法：恢复 `HistoryManager` 和 `HistoryRecord` 接入，最终结果写入本地 JSON 历史，并实现历史 bottom sheet 的恢复、复制、删除、清空操作。
+- 修复方法：从 `feature/korean-hotwords` 恢复 `_chineseScanKeywords`、`_chineseDistanceKeywords`、`_koreanDistanceKeywords`、`_koreanPinCatcherKeywords`、`_englishDistanceKeywords`、`_englishPinCatcherKeywords`、`_japaneseDistanceKeywords`、`_japanesePinCatcherKeywords` 的完整词表。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 
