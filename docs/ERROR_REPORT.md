@@ -48,6 +48,9 @@
 - 问题描述：点击麦克风开始新一轮识别时直接清空 `_recognizedText`，导致上次最终识别内容丢失，不符合保留历史输出的交互预期。
 - 影响范围：首页识别结果显示。
 - 严重程度：中。
+- 问题描述：`home_screen.dart` 中历史按钮入口 `_showHistory()` 仍是 TODO，且最终识别结果没有写入 `HistoryManager`，导致历史按钮点击无效。
+- 影响范围：首页历史记录功能。
+- 严重程度：中。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
@@ -71,6 +74,7 @@
 - 修复方法：结果区域优先显示最终文本，其次显示 partial 文本，最后显示提示文案。
 - 修复方法：开始录音时只清空 `_partialText` 和错误状态，不再清空 `_recognizedText`。
 - 修复方法：结果区域使用固定 `Expanded` 占位和内部滚动，避免最终结果、partial 和提示文案切换时改变外部尺寸。
+- 修复方法：恢复 `HistoryManager` 和 `HistoryRecord` 接入，最终结果写入本地 JSON 历史，并实现历史 bottom sheet 的恢复、复制、删除、清空操作。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 

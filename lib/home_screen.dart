@@ -7,6 +7,8 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'app_locale_scope.dart';
 import 'app_strings.dart';
+import 'history_manager.dart';
+import 'history_record.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -292,6 +294,7 @@ const _japanesePinCatcherKeywords = {
 class _HomeScreenState extends State<HomeScreen> {
   static const _channel = MethodChannel('native_speech_recognition');
 
+  final _historyManager = HistoryManager();
   String _selectedLangCode = 'zh';
   String _recognizedText = '';
   String _partialText = '';
@@ -317,6 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _partialText = '';
             _isRecording = false;
           });
+          _saveHistoryRecord(formatted);
         }
       } else if (call.method == 'onRecognitionPartial') {
         final text = call.arguments as String;
@@ -466,8 +470,136 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _selectedLangCode = code);
   }
 
-  void _showHistory() {
-    // TODO: Show history dialog
+  Future<void> _saveHistoryRecord(String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    try {
+      await _historyManager.add(
+        HistoryRecord(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          createdAt: DateTime.now(),
+          languageName: AppLocaleScope.of(context).recognitionLangName(_selectedLangCode),
+          languageFlag: _selectedLangCode,
+          text: trimmed,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[History] Save failed: $e');
+    }
+  }
+
+  Future<void> _showHistory() async {
+    final s = AppLocaleScope.of(context);
+    final records = List<HistoryRecord>.from(await _historyManager.loadAll());
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> refresh() async {
+              final latest = await _historyManager.loadAll();
+              records
+                ..clear()
+                ..addAll(latest);
+              if (context.mounted) setSheetState(() {});
+            }
+
+            return SafeArea(
+              child: SizedBox(
+                height: MediaQuery.sizeOf(context).height * 0.72,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              s.history,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: records.isEmpty
+                                ? null
+                                : () async {
+                                    await _historyManager.clearAll();
+                                    await refresh();
+                                  },
+                            icon: const Icon(Icons.delete_sweep, size: 18),
+                            label: Text(s.clearHistory),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: records.isEmpty
+                          ? Center(child: Text(s.noHistory))
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              itemCount: records.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final record = records[index];
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(
+                                    record.text,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  subtitle: Text(
+                                    '${record.languageName} · ${_formatHistoryTime(record.createdAt)}',
+                                  ),
+                                  onTap: () {
+                                    setState(() => _recognizedText = record.text);
+                                    Navigator.of(context).pop();
+                                  },
+                                  trailing: Wrap(
+                                    spacing: 4,
+                                    children: [
+                                      IconButton(
+                                        tooltip: s.copy,
+                                        icon: const Icon(Icons.copy, size: 18),
+                                        onPressed: () {
+                                          Clipboard.setData(
+                                            ClipboardData(text: record.text),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        tooltip: s.clear,
+                                        icon: const Icon(Icons.delete_outline, size: 18),
+                                        onPressed: () async {
+                                          await _historyManager.delete(record.id);
+                                          await refresh();
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatHistoryTime(DateTime time) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${time.year}-${two(time.month)}-${two(time.day)} '
+        '${two(time.hour)}:${two(time.minute)}';
   }
 
   void _copyText() {
