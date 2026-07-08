@@ -30,6 +30,12 @@
 - 问题描述：多次启动 iOS 原生识别时，如果旧 `AVAudioEngine` input tap 未正确释放，可能触发重复安装 tap 或音频引擎异常。
 - 影响范围：iOS 连续开始/停止语音识别。
 - 严重程度：中。
+- 问题描述：当前分支只实现了 iOS 原生语音识别，Android 仍没有对应 MethodChannel 原生实现；在 Android 调用语音识别会缺少平台侧处理。
+- 影响范围：Android 启动语音识别。
+- 严重程度：高。
+- 问题描述：Android 11+ 如果未在 `<queries>` 中声明 `android.speech.RecognitionService`，查询系统语音识别服务可能受包可见性限制影响。
+- 影响范围：Android 11+ 系统语音识别可用性判断。
+- 严重程度：中。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
@@ -43,6 +49,9 @@
 - 修复方法：恢复 `AppDelegate` 的标准 `GeneratedPluginRegistrant.register(with: self)`，移除不稳定的 `window?.rootViewController` 通道注册。
 - 修复方法：在 iOS 原生识别开始前调用 `stopListening()` 清理旧任务，并用 `isInputTapInstalled` 防止无状态移除或重复安装 input tap。
 - 修复方法：将 `test/widget_test.dart` 的导入从旧包名改为当前 `speech_to_text_ios_native`，并清理 Dart 静态分析告警。
+- 修复方法：在 `MainActivity.configureFlutterEngine()` 中注册 `native_speech_recognition` MethodChannel，并用 Android 系统 `SpeechRecognizer` 实现 `initialize`、`startListening`、`stopListening`。
+- 修复方法：Android 原生侧开始识别前销毁旧 `SpeechRecognizer`，避免重复监听和资源泄漏。
+- 修复方法：在 `AndroidManifest.xml` 的 `<queries>` 中加入 `android.speech.RecognitionService`。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 

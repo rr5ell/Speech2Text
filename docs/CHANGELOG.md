@@ -40,6 +40,18 @@
 
 # 修改日志
 
+## [2026-07-08] Codex Agent
+
+### Added
+- 新增 Android 系统原生 `SpeechRecognizer` 语音识别实现，通过 `native_speech_recognition` MethodChannel 与 Flutter 通信。
+- Android 原生识别支持 `initialize`、`startListening`、`stopListening`，并通过 `onRecognitionPartial` / `onRecognitionResult` 回传中间和最终识别文本。
+- Android Manifest 增加 `android.speech.RecognitionService` 查询声明，兼容 Android 11+ 包可见性限制。
+
+### Changed
+- 将 Flutter/iOS 通道名从 `ios_speech_recognition` 调整为平台中性的 `native_speech_recognition`。
+- 首页文案从 `iOS 原生语音识别` 调整为 `系统原生语音识别`。
+- 更新项目代码资产库，登记 iOS/Android 系统原生语音识别共用通道。
+
 ## [2026-07-07] Codex Agent
 
 ### Fixed

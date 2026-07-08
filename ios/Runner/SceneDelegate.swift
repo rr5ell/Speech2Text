@@ -10,7 +10,7 @@ class SceneDelegate: FlutterSceneDelegate {
     super.scene(scene, willConnectTo: session, options: connectionOptions)
 
     guard let controller = window?.rootViewController as? FlutterViewController else {
-      print("[iOS Speech] FlutterViewController not ready; speech channel was not registered")
+      print("[Native Speech] FlutterViewController not ready; speech channel was not registered")
       return
     }
 

@@ -6,7 +6,7 @@ import Speech
 import AVFoundation
 
 final class IOSSpeechRecognitionPlugin {
-    private static let channelName = "ios_speech_recognition"
+    private static let channelName = "native_speech_recognition"
     private static var channel: FlutterMethodChannel?
     private static var speechRecognition: IOSSpeechRecognition?
 
@@ -117,7 +117,8 @@ class IOSSpeechRecognition: NSObject {
             if let result = result {
                 let text = result.bestTranscription.formattedString
                 DispatchQueue.main.async {
-                    self.channel?.invokeMethod("onRecognitionResult", arguments: text)
+                    let method = result.isFinal ? "onRecognitionResult" : "onRecognitionPartial"
+                    self.channel?.invokeMethod(method, arguments: text)
                 }
 
                 if result.isFinal {

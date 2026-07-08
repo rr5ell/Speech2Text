@@ -290,7 +290,7 @@ const _japanesePinCatcherKeywords = {
 };
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const _channel = MethodChannel('ios_speech_recognition');
+  static const _channel = MethodChannel('native_speech_recognition');
 
   String _selectedLangCode = 'zh';
   String _recognizedText = '';
@@ -309,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (call.method == 'onRecognitionResult') {
         final text = call.arguments as String;
         final formatted = _formatKeyword(text);
-        debugPrint('[iOS Speech] Result: "$text" → "$formatted"');
+        debugPrint('[Native Speech] Result: "$text" → "$formatted"');
         if (mounted) {
           setState(() {
             if (_recognizedText.isNotEmpty) _recognizedText += '\n';
@@ -317,9 +317,15 @@ class _HomeScreenState extends State<HomeScreen> {
             _partialText = '';
           });
         }
+      } else if (call.method == 'onRecognitionPartial') {
+        final text = call.arguments as String;
+        debugPrint('[Native Speech] Partial: "$text"');
+        if (mounted) {
+          setState(() => _partialText = text);
+        }
       } else if (call.method == 'onError') {
         final error = call.arguments as String;
-        debugPrint('[iOS Speech] Error: $error');
+        debugPrint('[Native Speech] Error: $error');
         if (mounted) {
           setState(() => _error = error);
         }
@@ -397,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return matched != null ? '$text → $matched' : text;
   }
 
-  String _getiOSLanguageCode(String langCode) {
+  String _getNativeLanguageCode(String langCode) {
     switch (langCode) {
       case 'zh': return 'zh-CN';
       case 'en': return 'en-US';
@@ -417,9 +423,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final iosLang = _getiOSLanguageCode(_selectedLangCode);
-      await _channel.invokeMethod('initialize', {'language': iosLang});
-      await _channel.invokeMethod('startListening', {'language': iosLang});
+      final nativeLang = _getNativeLanguageCode(_selectedLangCode);
+      final initialized = await _channel.invokeMethod<bool>(
+        'initialize',
+        {'language': nativeLang},
+      );
+      if (initialized != true) {
+        setState(() => _error = '当前设备不支持系统语音识别');
+        return;
+      }
+      await _channel.invokeMethod('startListening', {'language': nativeLang});
 
       setState(() {
         _isRecording = true;
@@ -427,9 +440,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _partialText = '';
       });
 
-      debugPrint('[iOS Speech] Started listening with language: $iosLang');
+      debugPrint('[Native Speech] Started listening with language: $nativeLang');
     } catch (e) {
-      debugPrint('[iOS Speech] Start error: $e');
+      debugPrint('[Native Speech] Start error: $e');
       setState(() => _error = '启动语音识别失败: $e');
     }
   }
@@ -438,9 +451,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await _channel.invokeMethod('stopListening');
       setState(() => _isRecording = false);
-      debugPrint('[iOS Speech] Stopped listening');
+      debugPrint('[Native Speech] Stopped listening');
     } catch (e) {
-      debugPrint('[iOS Speech] Stop error: $e');
+      debugPrint('[Native Speech] Stop error: $e');
     }
   }
 
@@ -559,7 +572,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'iOS 原生语音识别',
+                      '系统原生语音识别',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,

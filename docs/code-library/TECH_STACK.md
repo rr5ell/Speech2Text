@@ -20,11 +20,21 @@
 | `AVFoundation` | `AVAudioEngine` 麦克风采集 |
 | `Flutter` | `FlutterMethodChannel` 与 Dart 通信 |
 
+## Android 原生能力
+
+| 框架 | 用途 |
+| --- | --- |
+| `android.speech.SpeechRecognizer` | Android 系统语音识别 |
+| `RecognizerIntent` | 配置识别语言、自由说话模式、部分结果 |
+| `MethodChannel` | 与 Dart 通信 |
+
 ## 关键配置
 
 - `ios/Runner/Info.plist` 配置 `NSSpeechRecognitionUsageDescription`。
 - `ios/Runner/Info.plist` 配置 `NSMicrophoneUsageDescription`。
 - `ios/Runner/Info.plist` 的 `UISceneDelegateClassName` 指向 `$(PRODUCT_MODULE_NAME).SceneDelegate`。
+- `android/app/src/main/AndroidManifest.xml` 配置 `RECORD_AUDIO`。
+- Android 11+ 需要在 `<queries>` 中声明 `android.speech.RecognitionService`，否则系统语音服务查询可能不可见。
 
 ## 最后更新
 
