@@ -57,6 +57,9 @@
 - 问题描述：iOS `SFSpeechRecognizer` 在调用 stop 后仍可能派发已经排队的 partial 结果，Flutter 侧未检查录音状态，导致 UI 打印停止后又显示一条 partial。
 - 影响范围：iOS 原生语音识别停止后的 UI 状态稳定性。
 - 严重程度：中。
+- 问题描述：中文热词匹配先判断扫描词表，再判断测距词表；当原生识别文本同时包含“测距”和“扫描”时，会先输出 `ok_扫描旗杆`，导致 `ok_测距` 看起来没有命中。
+- 影响范围：中文原生语音命令识别，尤其是 iOS partial/final 文本中混入多个命令词的场景。
+- 严重程度：中。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
@@ -84,10 +87,12 @@
 - 修复方法：从 `feature/korean-hotwords` 恢复 `_chineseScanKeywords`、`_chineseDistanceKeywords`、`_koreanDistanceKeywords`、`_koreanPinCatcherKeywords`、`_englishDistanceKeywords`、`_englishPinCatcherKeywords`、`_japaneseDistanceKeywords`、`_japanesePinCatcherKeywords` 的完整词表。
 - 修复方法：iOS 原生识别引入 `activeSessionId` 和 `isListening`，stop 后丢弃旧识别会话的迟到回调。
 - 修复方法：Flutter 侧只在 `_isRecording == true` 时接收 `onRecognitionPartial`。
+- 修复方法：中文热词匹配调整为先判断 `_chineseDistanceKeywords`，未命中时再判断 `_chineseScanKeywords`，保证“测距”在混合文本中优先输出 `ok_测距`。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 
 ### 预防措施
 - 后续新增韩语热词时，优先添加完整词组；必须添加单字词时，先评估是否会覆盖其他命令。
+- 后续新增中文热词时，测距类命令需要保持在扫描类命令之前，避免混合识别文本被扫描词抢先命中。
 - UI 标题或文案变更时，同步更新对应 widget 测试断言。
 - 新开 Flutter 项目前确认 IDE 已重启并继承用户级 `GRADLE_USER_HOME`。

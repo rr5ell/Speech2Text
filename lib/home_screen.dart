@@ -411,14 +411,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     String? matched;
     if (_selectedLangCode == 'zh') {
-      for (final entry in _chineseScanKeywords.entries) {
+      for (final entry in _chineseDistanceKeywords.entries) {
         if (text.contains(entry.key)) {
           matched = entry.value;
           break;
         }
       }
       if (matched == null) {
-        for (final entry in _chineseDistanceKeywords.entries) {
+        for (final entry in _chineseScanKeywords.entries) {
           if (text.contains(entry.key)) {
             matched = entry.value;
             break;

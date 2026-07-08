@@ -49,6 +49,7 @@
 - 开始新一轮命令识别时不要清空上次最终结果，只清理 partial 文本。
 - 最终识别结果应写入 `HistoryManager`，历史入口不能只保留 UI 按钮。
 - 热词表以 `feature/korean-hotwords` 中的完整词表为准，合并平台原生识别改动时不得回退成简化词表。
+- 中文热词匹配必须先判断测距类 `_chineseDistanceKeywords`，再判断扫描类 `_chineseScanKeywords`，避免同时出现“测距/扫描”时被扫描抢先命中。
 
 ## 注意事项
 
