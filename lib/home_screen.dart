@@ -441,7 +441,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _isRecording = true;
-        _recognizedText = '';
         _partialText = '';
       });
 
@@ -506,7 +505,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildLanguageSelector(cs, s),
             _buildStatusCard(cs, s),
             if (_error != null) _buildErrorBanner(cs),
-            Expanded(child: _buildResultsArea(cs, s)),
+            _buildResultsArea(cs, s),
             _buildActionBar(cs, s),
             const SizedBox(height: 96),
           ],
@@ -628,19 +627,25 @@ class _HomeScreenState extends State<HomeScreen> {
             : s.tapMicHint;
     final hasRecognizedText = _recognizedText.isNotEmpty;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SingleChildScrollView(
-        child: Text(
-          displayText,
-          style: TextStyle(
-            fontSize: 16,
-            color: hasRecognizedText ? cs.onSurface : cs.onSurfaceVariant,
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: SizedBox.expand(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                displayText,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: hasRecognizedText ? cs.onSurface : cs.onSurfaceVariant,
+                ),
+              ),
+            ),
           ),
         ),
       ),

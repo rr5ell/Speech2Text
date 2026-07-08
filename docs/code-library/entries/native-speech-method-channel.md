@@ -45,6 +45,7 @@
 - 原生侧通过 `onRecognitionPartial` 返回中间结果，通过 `onRecognitionResult` 返回最终结果。
 - Flutter 收到最终结果或错误后必须同步结束录音 UI 状态。
 - Android/iOS 原生侧在最终结果或错误后清理当前识别会话，下一次识别重新创建会话。
+- 开始新一轮命令识别时不要清空上次最终结果，只清理 partial 文本。
 
 ## 注意事项
 
