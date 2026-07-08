@@ -60,6 +60,9 @@
 - 问题描述：中文热词匹配先判断扫描词表，再判断测距词表；当原生识别文本同时包含“测距”和“扫描”时，会先输出 `ok_扫描旗杆`，导致 `ok_测距` 看起来没有命中。
 - 影响范围：中文原生语音命令识别，尤其是 iOS partial/final 文本中混入多个命令词的场景。
 - 严重程度：中。
+- 问题描述：`onRecognitionPartial` 只原样写入 `_partialText`，没有执行 `_formatKeyword`；因此 iOS/Android partial 返回“测”时，虽然词表存在 `'测': 'ok_测距'`，UI 仍显示“测”而不是命中结果。
+- 影响范围：partial 阶段已经足够判断命令的短热词，例如中文“测”。
+- 严重程度：中。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
@@ -88,11 +91,13 @@
 - 修复方法：iOS 原生识别引入 `activeSessionId` 和 `isListening`，stop 后丢弃旧识别会话的迟到回调。
 - 修复方法：Flutter 侧只在 `_isRecording == true` 时接收 `onRecognitionPartial`。
 - 修复方法：中文热词匹配调整为先判断 `_chineseDistanceKeywords`，未命中时再判断 `_chineseScanKeywords`，保证“测距”在混合文本中优先输出 `ok_测距`。
+- 修复方法：partial 文本同样执行 `_formatKeyword`；如果已经命中热词，则复用最终结果处理逻辑写入 `_recognizedText`、保存历史并调用 `stopListening` 结束本轮监听。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 
 ### 预防措施
 - 后续新增韩语热词时，优先添加完整词组；必须添加单字词时，先评估是否会覆盖其他命令。
 - 后续新增中文热词时，测距类命令需要保持在扫描类命令之前，避免混合识别文本被扫描词抢先命中。
+- 热词命令如果允许由 partial 提前命中，必须同时处理迟到 final/partial 回调，避免重复写入结果。
 - UI 标题或文案变更时，同步更新对应 widget 测试断言。
 - 新开 Flutter 项目前确认 IDE 已重启并继承用户级 `GRADLE_USER_HOME`。

@@ -377,20 +377,20 @@ class _HomeScreenState extends State<HomeScreen> {
         final text = call.arguments as String;
         final formatted = _formatKeyword(text);
         debugPrint('[Native Speech] Result: "$text" → "$formatted"');
-        if (mounted) {
-          setState(() {
-            if (_recognizedText.isNotEmpty) _recognizedText += '\n';
-            _recognizedText += formatted;
-            _partialText = '';
-            _isRecording = false;
-          });
-          _saveHistoryRecord(formatted);
+        if (mounted && _isRecording) {
+          await _acceptRecognition(formatted);
         }
       } else if (call.method == 'onRecognitionPartial') {
         final text = call.arguments as String;
-        debugPrint('[Native Speech] Partial: "$text"');
+        final formatted = _formatKeyword(text);
+        debugPrint('[Native Speech] Partial: "$text" → "$formatted"');
         if (mounted && _isRecording) {
-          setState(() => _partialText = text);
+          if (formatted != text) {
+            await _acceptRecognition(formatted);
+            unawaited(_stopNativeListeningAfterPartialHit());
+          } else {
+            setState(() => _partialText = text);
+          }
         }
       } else if (call.method == 'onError') {
         final error = call.arguments as String;
@@ -404,6 +404,25 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+  }
+
+  Future<void> _acceptRecognition(String text) async {
+    setState(() {
+      if (_recognizedText.isNotEmpty) _recognizedText += '\n';
+      _recognizedText += text;
+      _partialText = '';
+      _isRecording = false;
+    });
+    await _saveHistoryRecord(text);
+  }
+
+  Future<void> _stopNativeListeningAfterPartialHit() async {
+    try {
+      await _channel.invokeMethod('stopListening');
+      debugPrint('[Native Speech] Stopped listening after partial hit');
+    } catch (e) {
+      debugPrint('[Native Speech] Stop after partial hit error: $e');
+    }
   }
 
   String _formatKeyword(String text) {
