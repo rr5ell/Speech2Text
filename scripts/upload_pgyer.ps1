@@ -22,12 +22,12 @@ $apiHosts = @(
 $selectedDomain = $null
 $selectedHost = $null
 
-foreach ($host in $apiHosts) {
+foreach ($apiHost in $apiHosts) {
     try {
-        $testUrl = "$host/getCOSToken"
+        $testUrl = "$apiHost/getCOSToken"
         $null = Invoke-WebRequest -Uri $testUrl -Method POST -Body @{ _api_key = $ApiKey } -TimeoutSec 10
-        $selectedHost = $host
-        $selectedDomain = ([Uri]$host).Host
+        $selectedHost = $apiHost
+        $selectedDomain = ([Uri]$apiHost).Host
         break
     } catch {
         continue
