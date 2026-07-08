@@ -14,78 +14,80 @@ if (-not (Test-Path $ApkPath)) {
     throw "APK not found: $ApkPath"
 }
 
-$apiDomains = @('api.pgyer.com', 'api.xcxwo.com', 'api.pgyeraapp.com')
+$apiHosts = @(
+    'https://www.pgyer.com/apiv2/app',
+    'https://www.xcxwo.com/apiv2/app',
+    'https://www.pgyerapp.com/apiv2/app'
+)
 $selectedDomain = $null
+$selectedHost = $null
 
-foreach ($domain in $apiDomains) {
+foreach ($host in $apiHosts) {
     try {
-        $testUrl = "https://$domain/apiv2/app/getCOSToken"
+        $testUrl = "$host/getCOSToken"
         $null = Invoke-WebRequest -Uri $testUrl -Method POST -Body @{ _api_key = $ApiKey } -TimeoutSec 10
-        $selectedDomain = $domain
+        $selectedHost = $host
+        $selectedDomain = ([Uri]$host).Host
         break
     } catch {
         continue
     }
 }
 
-if (-not $selectedDomain) {
+if (-not $selectedHost) {
     throw 'Unable to reach PGYER API domains.'
 }
 
-Write-Host "Using API domain: $selectedDomain"
+Write-Host "Using API host: $selectedHost"
 
 $tokenBody = @{
     _api_key = $ApiKey
-    buildType = 'apk'
+    buildType = 'android'
     buildInstallType = '1'
     buildUpdateDescription = $UpdateDescription
 }
 
-$tokenResp = Invoke-RestMethod -Uri "https://$selectedDomain/apiv2/app/getCOSToken" -Method POST -Body $tokenBody
+$tokenResp = Invoke-RestMethod -Uri "$selectedHost/getCOSToken" -Method POST -Body $tokenBody
 if ($tokenResp.code -ne 0) {
     throw "Failed to get upload token: $($tokenResp.message)"
 }
 
 $data = $tokenResp.data
+$uploadParams = $data.params
+if (-not $uploadParams) {
+    $uploadParams = $data
+}
 Write-Host 'Upload token obtained. Uploading APK...'
 
 $fileName = [IO.Path]::GetFileName($ApkPath)
-$boundary = [Guid]::NewGuid().ToString()
-$LF = "`r`n"
-$fileBytes = [IO.File]::ReadAllBytes($ApkPath)
+$curlArgs = @('-sS', '-i', '-X', 'POST', $data.endpoint)
+foreach ($prop in $uploadParams.PSObject.Properties) {
+    $curlArgs += @('--form-string', "$($prop.Name)=$($prop.Value)")
+}
+$curlArgs += @('--form-string', "x-cos-meta-file-name=$fileName")
+$curlArgs += @('-F', "file=@$ApkPath;type=application/vnd.android.package-archive")
 
-$bodyStart = (
-    "--$boundary$LF" +
-    "Content-Disposition: form-data; name=`"key`"$LF$LF$($data.key)$LF" +
-    "--$boundary$LF" +
-    "Content-Disposition: form-data; name=`"signature`"$LF$LF$($data.signature)$LF" +
-    "--$boundary$LF" +
-    "Content-Disposition: form-data; name=`"x-cos-security-token`"$LF$LF$($data.'x-cos-security-token')$LF" +
-    "--$boundary$LF" +
-    "Content-Disposition: form-data; name=`"x-cos-meta-file-name`"$LF$LF$fileName$LF" +
-    "--$boundary$LF" +
-    "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"$LF" +
-    "Content-Type: application/vnd.android.package-archive$LF$LF"
-)
-$bodyEnd = "$LF--$boundary--$LF"
-$bodyBytes = [Text.Encoding]::UTF8.GetBytes($bodyStart) + $fileBytes + [Text.Encoding]::UTF8.GetBytes($bodyEnd)
-
-$uploadResp = Invoke-WebRequest -Uri $data.endpoint -Method POST -ContentType "multipart/form-data; boundary=$boundary" -Body $bodyBytes -TimeoutSec 3600
-if ($uploadResp.StatusCode -ne 204) {
-    throw "Upload failed with HTTP $($uploadResp.StatusCode)"
+$uploadResp = & curl.exe @curlArgs
+$statusLines = $uploadResp | Where-Object { $_ -match '^HTTP/' }
+$lastStatus = $statusLines | Select-Object -Last 1
+if ($lastStatus -notmatch ' 204 ') {
+    throw "Upload failed: $($uploadResp -join [Environment]::NewLine)"
 }
 
 Write-Host 'APK uploaded. Waiting for build processing...'
 
-$webDomain = $selectedDomain -replace '^api\.', ''
 for ($i = 1; $i -le 120; $i++) {
     Start-Sleep -Seconds 2
-    $info = Invoke-RestMethod -Uri "https://$selectedDomain/apiv2/app/buildInfo" -Method POST -Body @{
+    $info = Invoke-RestMethod -Uri "$selectedHost/buildInfo" -Method POST -Body @{
         _api_key = $ApiKey
         buildKey = $data.key
     }
     if ($info.code -eq 0) {
-        $url = "https://$webDomain/$($info.data.buildShortcutUrl)"
+        $shortcut = $info.data.buildShortcutUrl
+        if (-not $shortcut) {
+            $shortcut = $info.data.buildKey
+        }
+        $url = "https://www.pgyer.com/$shortcut"
         Write-Host ''
         Write-Host 'Upload completed!'
         Write-Host "App: $($info.data.buildName)"
