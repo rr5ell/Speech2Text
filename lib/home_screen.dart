@@ -1,6 +1,7 @@
 // 主界面：iOS 原生语音识别、热词匹配、结果展示。
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -365,6 +366,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isRecording = false;
   String? _error;
 
+  bool get _isIosNativeSpeech => defaultTargetPlatform == TargetPlatform.iOS;
+
   @override
   void initState() {
     super.initState();
@@ -385,13 +388,20 @@ class _HomeScreenState extends State<HomeScreen> {
         final formatted = _formatKeyword(text);
         debugPrint('[Native Speech] Partial: "$text" → "$formatted"');
         if (mounted && _isRecording) {
-          setState(() => _partialText = formatted);
+          if (_isIosNativeSpeech) {
+            setState(() => _partialText = formatted);
+          } else if (formatted != text) {
+            await _acceptRecognition(formatted);
+            unawaited(_stopNativeListeningAfterPartialHit());
+          } else {
+            setState(() => _partialText = text);
+          }
         }
       } else if (call.method == 'onError') {
         final error = call.arguments as String;
         debugPrint('[Native Speech] Error: $error');
         if (mounted) {
-          if (_partialText.trim().isNotEmpty) {
+          if (_isIosNativeSpeech && _partialText.trim().isNotEmpty) {
             await _acceptRecognition(_partialText);
           } else {
             setState(() {
@@ -414,6 +424,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _error = null;
     });
     await _saveHistoryRecord(text);
+  }
+
+  Future<void> _stopNativeListeningAfterPartialHit() async {
+    try {
+      await _channel.invokeMethod('stopListening');
+      debugPrint('[Native Speech] Stopped listening after partial hit');
+    } catch (e) {
+      debugPrint('[Native Speech] Stop after partial hit error: $e');
+    }
   }
 
   String _formatKeyword(String text) {
@@ -533,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await _channel.invokeMethod('stopListening');
       if (!mounted) return;
-      if (_partialText.trim().isNotEmpty) {
+      if (_isIosNativeSpeech && _partialText.trim().isNotEmpty) {
         await _acceptRecognition(_partialText);
       } else {
         setState(() => _isRecording = false);
