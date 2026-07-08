@@ -63,6 +63,12 @@
 - 问题描述：`onRecognitionPartial` 只原样写入 `_partialText`，没有执行 `_formatKeyword`；因此 iOS/Android partial 返回“测”时，虽然词表存在 `'测': 'ok_测距'`，UI 仍显示“测”而不是命中结果。
 - 影响范围：partial 阶段已经足够判断命令的短热词，例如中文“测”。
 - 严重程度：中。
+- 问题描述：partial 一旦命中热词就写入最终结果并调用 `stopListening`，导致 iOS/Android 刚识别到一个短词就停止，无法像原阿里引擎流程一样继续输出完整说话内容。
+- 影响范围：连续说多个命令词、长词纠错和韩语/中文短词识别。
+- 严重程度：高。
+- 问题描述：结果区优先显示 `_recognizedText`，当已有历史结果时，新一轮 `_partialText` 即使有内容也被隐藏，造成未命中热词的 partial 看起来没有显示。
+- 影响范围：首页识别结果展示。
+- 严重程度：中。
 
 ### 解决方案
 - 修复方法：将较长的新增触发词放在短词之前，减少被短词抢先命中的风险。
@@ -91,7 +97,9 @@
 - 修复方法：iOS 原生识别引入 `activeSessionId` 和 `isListening`，stop 后丢弃旧识别会话的迟到回调。
 - 修复方法：Flutter 侧只在 `_isRecording == true` 时接收 `onRecognitionPartial`。
 - 修复方法：中文热词匹配调整为先判断 `_chineseDistanceKeywords`，未命中时再判断 `_chineseScanKeywords`，保证“测距”在混合文本中优先输出 `ok_测距`。
-- 修复方法：partial 文本同样执行 `_formatKeyword`；如果已经命中热词，则复用最终结果处理逻辑写入 `_recognizedText`、保存历史并调用 `stopListening` 结束本轮监听。
+- 修复方法：partial 文本同样执行 `_formatKeyword`，命中热词时先作为 `_partialText` 实时预览，不立即结束本轮监听。
+- 修复方法：partial 命中热词时只更新 `_partialText` 作为实时预览，不再提前停止监听；最终结果、手动停止或错误兜底时再写入 `_recognizedText`。
+- 修复方法：结果区同时展示历史 `_recognizedText` 和当前 `_partialText`，避免新一轮未命中文本被旧结果遮挡。
 - 验证步骤：运行静态分析、Flutter 测试，并人工检查新增词表顺序。
 - 验证步骤：执行 `gradlew --version`，确认 Gradle 8.3 下载并解压到 `E:\Android\.gradle\wrapper\dists`。
 
@@ -99,5 +107,6 @@
 - 后续新增韩语热词时，优先添加完整词组；必须添加单字词时，先评估是否会覆盖其他命令。
 - 后续新增中文热词时，测距类命令需要保持在扫描类命令之前，避免混合识别文本被扫描词抢先命中。
 - 热词命令如果允许由 partial 提前命中，必须同时处理迟到 final/partial 回调，避免重复写入结果。
+- partial 阶段不得直接停止原生监听；如需“命中即停”，必须先确认不会破坏连续说话和长词纠错流程。
 - UI 标题或文案变更时，同步更新对应 widget 测试断言。
 - 新开 Flutter 项目前确认 IDE 已重启并继承用户级 `GRADLE_USER_HOME`。

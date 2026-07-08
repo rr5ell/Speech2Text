@@ -48,7 +48,8 @@
 - iOS Speech Framework 可能在 stop 后派发迟到回调，必须用 session id 或 listening flag 丢弃旧会话结果。
 - 开始新一轮命令识别时不要清空上次最终结果，只清理 partial 文本。
 - 最终识别结果应写入 `HistoryManager`，历史入口不能只保留 UI 按钮。
-- partial 文本也要执行热词格式化；如果 partial 已经命中 `ok_` 命令，应立即接受结果、保存历史并停止本轮原生监听，避免后续文本继续拼接。
+- partial 文本也要执行热词格式化，但只能作为实时预览；不要因为 partial 命中 `ok_` 命令就立即停止监听，避免短词抢先截断完整说话内容。
+- 结果区需要同时展示已有最终结果和当前 partial，避免历史结果遮挡新一轮未命中的识别文本。
 - 热词表以 `feature/korean-hotwords` 中的完整词表为准，合并平台原生识别改动时不得回退成简化词表。
 - 中文热词匹配必须先判断测距类 `_chineseDistanceKeywords`，再判断扫描类 `_chineseScanKeywords`，避免同时出现“测距/扫描”时被扫描抢先命中。
 

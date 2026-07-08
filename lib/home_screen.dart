@@ -385,22 +385,21 @@ class _HomeScreenState extends State<HomeScreen> {
         final formatted = _formatKeyword(text);
         debugPrint('[Native Speech] Partial: "$text" → "$formatted"');
         if (mounted && _isRecording) {
-          if (formatted != text) {
-            await _acceptRecognition(formatted);
-            unawaited(_stopNativeListeningAfterPartialHit());
-          } else {
-            setState(() => _partialText = text);
-          }
+          setState(() => _partialText = formatted);
         }
       } else if (call.method == 'onError') {
         final error = call.arguments as String;
         debugPrint('[Native Speech] Error: $error');
         if (mounted) {
-          setState(() {
-            _error = error;
-            _partialText = '';
-            _isRecording = false;
-          });
+          if (_partialText.trim().isNotEmpty) {
+            await _acceptRecognition(_partialText);
+          } else {
+            setState(() {
+              _error = error;
+              _partialText = '';
+              _isRecording = false;
+            });
+          }
         }
       }
     });
@@ -412,17 +411,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _recognizedText += text;
       _partialText = '';
       _isRecording = false;
+      _error = null;
     });
     await _saveHistoryRecord(text);
-  }
-
-  Future<void> _stopNativeListeningAfterPartialHit() async {
-    try {
-      await _channel.invokeMethod('stopListening');
-      debugPrint('[Native Speech] Stopped listening after partial hit');
-    } catch (e) {
-      debugPrint('[Native Speech] Stop after partial hit error: $e');
-    }
   }
 
   String _formatKeyword(String text) {
@@ -541,7 +532,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _stopRecording() async {
     try {
       await _channel.invokeMethod('stopListening');
-      setState(() => _isRecording = false);
+      if (!mounted) return;
+      if (_partialText.trim().isNotEmpty) {
+        await _acceptRecognition(_partialText);
+      } else {
+        setState(() => _isRecording = false);
+      }
       debugPrint('[Native Speech] Stopped listening');
     } catch (e) {
       debugPrint('[Native Speech] Stop error: $e');
@@ -835,12 +831,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildResultsArea(ColorScheme cs, AppStrings s) {
-    final displayText = _recognizedText.isNotEmpty
-        ? _recognizedText
-        : _partialText.isNotEmpty
-            ? _partialText
-            : s.tapMicHint;
-    final hasRecognizedText = _recognizedText.isNotEmpty;
+    final displayText = _recognizedText.isNotEmpty && _partialText.isNotEmpty
+        ? '$_recognizedText\n$_partialText'
+        : _recognizedText.isNotEmpty
+            ? _recognizedText
+            : _partialText.isNotEmpty
+                ? _partialText
+                : s.tapMicHint;
+    final hasRecognizedText =
+        _recognizedText.isNotEmpty || _partialText.isNotEmpty;
 
     return Expanded(
       child: Padding(
