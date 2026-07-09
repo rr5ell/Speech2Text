@@ -578,7 +578,7 @@ class _HomeScreenState extends State<HomeScreen> {
         {'language': nativeLang},
       );
       if (initialized != true) {
-        setState(() => _error = '当前设备不支持系统语音识别');
+        setState(() => _error = AppLocaleScope.of(context).unsupportedSpeech);
         return;
       }
       await _channel.invokeMethod('startListening', {'language': nativeLang});
@@ -592,7 +592,7 @@ class _HomeScreenState extends State<HomeScreen> {
           '[Native Speech] Started listening with language: $nativeLang');
     } catch (e) {
       debugPrint('[Native Speech] Start error: $e');
-      setState(() => _error = '启动语音识别失败: $e');
+      setState(() => _error = AppLocaleScope.of(context).startSpeechFailed(e));
     }
   }
 
@@ -774,6 +774,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
+        leading: _buildUiLanguageMenu(s),
         title: Text(s.appTitle),
         actions: [
           IconButton(
@@ -797,6 +798,36 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: _buildRecordFab(cs, s),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  Widget _buildUiLanguageMenu(AppStrings s) {
+    return PopupMenuButton<AppUiLanguage>(
+      tooltip: s.uiLanguage,
+      icon: const Icon(Icons.language),
+      initialValue: s.language,
+      onSelected: (language) {
+        AppLocaleScope.changeLanguage(context, language);
+      },
+      itemBuilder: (context) {
+        return AppUiLanguage.values.map((language) {
+          return PopupMenuItem<AppUiLanguage>(
+            value: language,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: language == s.language
+                      ? const Icon(Icons.check, size: 18)
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                Text(s.uiLanguageName(language)),
+              ],
+            ),
+          );
+        }).toList();
+      },
     );
   }
 
@@ -863,15 +894,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '系统原生语音识别',
-                      style: TextStyle(
+                    Text(
+                      s.nativeSpeechTitle,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
                       ),
                     ),
                     Text(
-                      _isRecording ? '正在聆听...' : '点击麦克风开始识别',
+                      _isRecording ? s.listening : s.idleMicHint,
                       style: TextStyle(
                         fontSize: 11,
                         color: cs.onSurfaceVariant,

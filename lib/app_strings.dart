@@ -27,6 +27,34 @@ class AppStrings {
 
   String get uiLanguage => _t('界面语言', 'Language', '言語', '앱 언어');
 
+  String get nativeSpeechTitle => _t(
+        '系统原生语音识别',
+        'System Speech Recognition',
+        'システム音声認識',
+        '시스템 음성 인식',
+      );
+
+  String get idleMicHint => _t(
+        '点击麦克风开始识别',
+        'Tap the mic to start',
+        'マイクをタップして開始',
+        '마이크를 눌러 시작',
+      );
+
+  String get unsupportedSpeech => _t(
+        '当前设备不支持系统语音识别',
+        'System speech recognition is not available on this device',
+        'この端末ではシステム音声認識を利用できません',
+        '현재 기기에서 시스템 음성 인식을 사용할 수 없습니다',
+      );
+
+  String startSpeechFailed(Object error) => _t(
+        '启动语音识别失败: $error',
+        'Failed to start speech recognition: $error',
+        '音声認識の開始に失敗しました: $error',
+        '음성 인식 시작 실패: $error',
+      );
+
   String get langChinese => '中文';
 
   String get langEnglish => 'English';
@@ -34,6 +62,19 @@ class AppStrings {
   String get langJapanese => '日本語';
 
   String get langKorean => '한국어';
+
+  String uiLanguageName(AppUiLanguage language) {
+    switch (language) {
+      case AppUiLanguage.zh:
+        return langChinese;
+      case AppUiLanguage.en:
+        return langEnglish;
+      case AppUiLanguage.ja:
+        return langJapanese;
+      case AppUiLanguage.ko:
+        return langKorean;
+    }
+  }
 
   String recognitionLangName(String code) {
     switch (code) {
