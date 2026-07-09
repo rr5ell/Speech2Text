@@ -774,9 +774,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
-        leading: _buildUiLanguageMenu(s),
         title: Text(s.appTitle),
         actions: [
+          _buildUiLanguageMenu(s),
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: s.history,
