@@ -1,7 +1,7 @@
 name: speech_to_text_ios_native
 description: "iOS Native Speech Recognition with Keyword Matching"
 publish_to: 'none'
-version: 1.0.4+2
+version: 1.0.5+3
 
 environment:
   sdk: ^3.5.0
